@@ -12,7 +12,7 @@ use mysql_xdevapi\Exception;
 
 class OrderClass
 {
-    public $logTableName = 'order';
+    public $logTableName = 'order_history';
     public $db;
 
     public function __construct()
@@ -33,19 +33,22 @@ class OrderClass
         return $result;
     }
 
-    public function read(array $args = null)
+    public function read(array $args = null, $order = " ORDER BY id ASC")
     {
         $sql = "SELECT * FROM {$this->db->dbName}.{$this->logTableName}";
         if ($args) {
             $sql .= " WHERE ";
             $sql .= self::genSqlSelectArgs($args);
         }
+        if ($order) {
+            $sql .= $order;
+        }
         $result = $this->db->getRows($sql);
 
         return $result;
     }
 
-    public function create($elevator_id, $floor, $status = 0, $direction = 0)
+    public function create($elevator_id, $floor, $status = 0, $direction = 1)
     {
         $sql = "INSERT INTO {$this->db->dbName}.{$this->logTableName} (\"elevator_id\", \"floor\", \"status\", \"direction\") VALUES ($elevator_id, $floor, $status, '$direction')";
         $result = $this->db->insert($sql);
@@ -57,13 +60,17 @@ class OrderClass
     {
         $call = $this->getNearestElevator($floor);
         $elevator = $call['elevator'];
-        $status = ($call['direction'] != 'none') ? 0 : 1;
-        $order_id = $this->create($elevator->id, $floor, $status, $call['direction']);
-        if (!$order_id) {
-            throw new Exception('Ошибка заказа лифта', 500);
+        if ($call['direction'] != 0) {
+            $order_id = $this->create($elevator->id, $floor, 0, $call['direction']);
+            if (!$order_id) {
+                throw new Exception('Ошибка заказа лифта', 500);
+            }
+            $result['order'] = end(self::read(['id' => $order_id]));
+            $result['elevators'] = $elevator->move($result['order']);
+        } else {
+            $result = null;
         }
-        $result['order'] = end(self::read(['id' => $order_id]));
-        $result['elevators'] = $elevator->move($result['order']);
+
         return $result;
     }
 
@@ -103,10 +110,22 @@ class OrderClass
         $std = unserialize($stdClass);
 
         $sql = "SELECT * FROM {$this->db->dbName}.{$this->logTableName}";
-        $sql .= " WHERE id <> {$std->id} AND datetime < '{$std->datetime}'  ORDER BY datetime DESC ";
+        $sql .= " WHERE id <> {$std->id} AND datetime < '{$std->datetime}' ORDER BY datetime DESC ";
         $prevOrder = $this->db->getRow($sql);
         return $prevOrder->floor;
+    }
 
+    public function getFloorStats($elevator_id = null)
+    {
+        $sql = "SELECT floor,COUNT(*) AS floors_stat FROM {$this->db->dbName}.{$this->logTableName}";
+        if ($elevator_id) {
+            $sql .= " WHERE elevator_id=$elevator_id";
+        }
+        $sql .= " GROUP BY floor ORDER BY floor ASC";
+
+        $result = $this->db->getRows($sql);
+
+        return $result;
     }
 
 }

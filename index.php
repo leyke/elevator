@@ -5,6 +5,7 @@
  * Date: 17.07.2019
  * Time: 22:56
  */
+/* @var $elevator \classes\Elevator */
 
 spl_autoload_register(function ($class) {
     require_once str_replace('\\', '/', $class) . '.php';
@@ -15,7 +16,6 @@ use classes\App;
 define("ELEVATORS_COUNT", 4);
 define("FLOORS_COUNT", 10);
 
-
 switch (App::getAction()) {
     case "index" :
         App::init();
@@ -24,26 +24,36 @@ switch (App::getAction()) {
         $orderClass = new \classes\OrderClass();
         $orderedFloors = array_column($orderClass->read(['status' => 0]), 'floor');
 
+        foreach ($elevators as $elevator) {
+            $elevator->loadStats();
+        }
+
         echo App::renderTemplate('main.php', array('elevators' => $elevators, 'orderedFloors' => $orderedFloors));
         break;
 
     case "call" :
-        /* @var $elevator \classes\Elevator */
         $floor = isset($_POST['floor']) ? $_POST['floor'] : null;
         if ($floor) {
             $orderClass = new \classes\OrderClass();
             $orderResult = $orderClass->call($floor);
 
-            $elevators = $orderResult['elevators'];
-            $order = $orderResult['order'];
+            if ($orderResult) {
+                $elevators = $orderResult['elevators'];
+                $order = $orderResult['order'];
 
-            $orderedFloors = array_column($orderClass->read(['status' => 0]), 'floor');
-            $house = App::renderTemplate('_house.php',
-                array('elevators' => $elevators, 'orderedFloors' => $orderedFloors));
+                $orderedFloors = array_column($orderClass->read(['status' => 0]), 'floor');
+                $house = App::renderTemplate('_house.php',
+                    array('elevators' => $elevators, 'orderedFloors' => $orderedFloors));
+                $lastCall = App::renderTemplate('_last-call.php', ['lastCall' => $order]);
 
-            $lastCall = App::renderTemplate('_last-call.php', ['lastCall' => $order]);
+                foreach ($elevators as $elevator) {
+                    $elevator->loadStats();
+                }
 
-            echo json_encode(['house' => $house, 'lastCall' => $lastCall]);
+                $history = App::renderTemplate('_history.php', array('elevators' => $elevators));
+
+                echo json_encode(['house' => $house, 'lastCall' => $lastCall, 'history' => $history]);
+            }
         }
 
         break;

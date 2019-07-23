@@ -13,7 +13,8 @@ class Elevator
 {
     public $id;
     public $curFloor;
-    public $tableName = 'elevator';
+    public $floorsStat;
+    public $iterations;
 
     public function __construct($id = null)
     {
@@ -82,5 +83,43 @@ class Elevator
         }
 
         return $direction;
+    }
+
+    public function getFloorStats()
+    {
+        $orderClass = new OrderClass();
+        $stats = $orderClass->getFloorStats($this->id);;
+
+        $result = array_combine(array_column($stats, 'floor'), array_column($stats, 'floors_stat'));
+
+        return $result;
+    }
+
+    public function getIterations()
+    {
+        $orders = $this->getOrders();
+
+        $iterations = [];
+        $direction = $orders[0]->direction;
+        $iterationBuf = ["1"];
+
+        foreach ($orders as $order) {
+            if ($direction == $order->direction) {
+                $iterationBuf[] = $order->floor;
+            } else {
+                $iterations[] = $iterationBuf;
+                $direction = $order->direction;
+                $iterationBuf = [end($iterationBuf), $order->floor];
+            }
+        }
+
+        $iterations[] = $iterationBuf;
+        return $iterations;
+    }
+
+    public function loadStats()
+    {
+        $this->floorsStat = $this->getFloorStats();
+        $this->iterations = $this->getIterations();
     }
 }

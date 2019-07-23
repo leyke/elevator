@@ -44,8 +44,12 @@
 
 <h2>Положение</h2>
 <section class="section js-house-wrap">
-
     <?= \classes\App::renderTemplate('_house.php', ['elevators' => $elevators, 'orderedFloors' => $orderedFloors]) ?>
+</section>
+
+<h2>Статистика</h2>
+<section class="section js-history">
+    <?= \classes\App::renderTemplate('_history.php', ['elevators' => $elevators]) ?>
 </section>
 
 <script type="text/javascript" src="/js/script.js"></script>

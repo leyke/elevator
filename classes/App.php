@@ -45,7 +45,7 @@ class App
 
         if (count($orders) < ELEVATORS_COUNT) {
             for ($i = 1; $i <= ELEVATORS_COUNT; $i++) {
-                $order->create($i, mt_rand(1, FLOORS_COUNT), 1);
+                $order->create($i, mt_rand(1, FLOORS_COUNT), 1, 1);
             }
         }
         self::checkFreeElevators();

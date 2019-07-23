@@ -1,6 +1,7 @@
 $(document).ready(function () {
     var houseWrap = $('.js-house-wrap');
     var lastCallWrap = $('.js-last-call');
+    var historyWrap = $('.js-history');
 
     $('.js-call-btn').on('click', function () {
         var floor = parseInt($(this).text());
@@ -11,11 +12,13 @@ $(document).ready(function () {
             type: "POST",
             data: {floor: floor}
         }).done(function (answer) {
-            var template = JSON.parse(answer);
-            houseWrap.html(template.house);
-            lastCallWrap.html(template.lastCall);
-console.log(template.lastCall);
-            btn.removeClass('is-waiting');
+            if (answer) {
+                var template = JSON.parse(answer);
+                houseWrap.html(template.house);
+                lastCallWrap.html(template.lastCall);
+                historyWrap.html(template.history);
+                btn.removeClass('is-waiting');
+            }
         });
     });
 
